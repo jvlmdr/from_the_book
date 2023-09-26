@@ -1,9 +1,8 @@
 import Mathlib.Data.List.Chain
 import Mathlib.Data.Nat.Prime
-import Mathlib.Logic.Basic
+import Mathlib.Tactic.Linarith
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.NormNum.Prime
-import Mathlib.Tactic.Linarith
 
 def nums := [2, 3, 5, 7, 13, 23, 43, 83, 163, 317, 631, 1259, 2503, 4001]
 
@@ -15,21 +14,6 @@ lemma allPrimeNums : List.All₂ Nat.Prime nums := by
   simp (config := {decide := false}) [nums]
   norm_num1
   simp
-
-lemma doubleIocIff {x n : ℕ} : x ∈ Set.Ioc n (2*n) ↔ 2*n ∈ Set.Ico x (2*x) := by
-  apply Iff.intro <;> {intro h; simp at *; apply And.intro <;> linarith}
-
--- Not used in proof.
-lemma memIcoOfMemConsec {x y n : ℕ} (h_sort : x < y) (h_slow : y ≤ 2*x)
-    : (x ∈ Set.Ioc n (2*n) ∨ y ∈ Set.Ioc n (2*n)) ↔ 2*n ∈ Set.Ico x (2*y) := by
-  simp_rw [doubleIocIff]
-  rw [← Set.mem_union]
-  rw [Set.Ico_union_Ico' h_slow]
-  . have : min x y = x := by {simp; linarith}
-    rw [this]
-    have : max (2*x) (2*y) = 2*y := by {simp; linarith}
-    rw [this]
-  . linarith
 
 lemma existsOfSlowMono {a b : ℕ} {l : List ℕ}
     (hl_mono : List.Chain (fun u v => u < v) a l)
@@ -56,7 +40,7 @@ lemma existsOfSlowMono {a b : ℕ} {l : List ℕ}
       simp_rw [this]
       simp only [or_and_right]
       rw [exists_or]
-      cases Decidable.em (x ≤ n) with
+      cases le_or_lt x n with
       | inl hx =>
         apply Or.inr
         simp only [Set.mem_Ico] at *
@@ -67,8 +51,8 @@ lemma existsOfSlowMono {a b : ℕ} {l : List ℕ}
         simp at *
         apply And.intro <;> linarith
 
-theorem bertrand4k {n : ℕ} (hn_pos : 0 < n) (hn_lt : n ≤ 4000)
-    : ∃ p, Nat.Prime p ∧ p ∈ Set.Ioc n (2*n) := by
+theorem landauTrick {n : ℕ} (hn_pos : 0 < n) (hn_lt : n ≤ 4000)
+    : ∃ p, p ∈ Set.Ioc n (2*n) ∧ Nat.Prime p := by
   intros
   have hp : n ∈ Set.Icc 1 4000 → ∃ p, p ∈ nums ∧ p ∈ Set.Ioc n (2*n)
   . apply existsOfSlowMono <;> simp [nums]
@@ -78,6 +62,6 @@ theorem bertrand4k {n : ℕ} (hn_pos : 0 < n) (hn_lt : n ≤ 4000)
   cases hp with
   | intro p hp =>
     exists p
-    apply And.intro _ hp.right
+    apply And.intro hp.right
     refine List.all₂_iff_forall.mp ?_ p hp.left
     exact allPrimeNums

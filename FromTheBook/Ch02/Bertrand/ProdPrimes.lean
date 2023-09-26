@@ -11,10 +11,9 @@ import Mathlib.Data.Nat.Interval
 import Mathlib.Data.Nat.Prime
 import Mathlib.Tactic.Linarith
 
-open BigOperators
+import FromTheBook.Ch02.Bertrand.Util
 
-def primes : Finset ℕ → Finset ℕ := Finset.filter Nat.Prime
-def prodPrimes (n : ℕ) : ℕ := ∏ p in primes (Finset.range n.succ), p
+open BigOperators
 
 example (n : ℕ) : primes (Finset.range n) = {p : ℕ | p < n ∧ Nat.Prime p} := by
   simp [primes]
@@ -45,17 +44,6 @@ lemma primesSuccEqPrimesSelf {n : ℕ} (hn : ¬Nat.Prime n.succ)
   rw [Finset.range_succ]
   simp [Finset.filter_insert]
   assumption
-
-lemma prodPrimesSplit {b a : ℕ} (ha : a ≤ b)
-    : prodPrimes b = prodPrimes a * ∏ p in primes (Finset.Ioc a b), p := by
-  rw [← Nat.Ico_succ_succ]
-  simp [prodPrimes, primes]
-  rw [Finset.range_eq_Ico]
-  rw [← Finset.prod_union]
-  . rw [← Finset.filter_union]
-    rw [Finset.Ico_union_Ico_eq_Ico (Nat.zero_le a.succ) (Nat.succ_le_succ ha)]
-  . apply Finset.disjoint_filter_filter
-    apply Finset.Ico_disjoint_Ico_consecutive
 
 theorem caseStrongRecOnOddPrimes {p : ℕ → Prop} (zero : p 0) (two : p 2)
     (not_prime : ∀ n, ¬Nat.Prime n.succ → (∀ x, x ≤ n → p x) → p n.succ)  -- Includes `p 1`.
@@ -114,3 +102,15 @@ theorem prodPrimesLePowFour {n : ℕ} : prodPrimes n ≤ 4^n.pred := by
     apply Nat.mul_le_mul hi
     apply le_trans _ chooseHalfLePowFour
     exact prodPrimesIocLeChoose
+
+theorem prodPrimesRealLePowFour {x : ℝ} (hx : 1 ≤ x) : ↑(prodPrimes ⌊x⌋₊) ≤ 4^(x-1) :=
+  calc (prodPrimes ⌊x⌋₊ : ℝ)
+    _ ≤ ↑(4 ^ (⌊x⌋₊ - 1)) := by
+      norm_cast
+      apply prodPrimesLePowFour
+    _ = 4 ^ ↑(⌊x⌋₊ - 1) := by norm_cast
+    _ ≤ 4 ^ (x - 1) := by
+      rw [Real.rpow_le_rpow_left_iff (by norm_num)]
+      rw [← Nat.floor_sub_one]
+      apply Nat.floor_le
+      linarith
